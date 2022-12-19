@@ -108,10 +108,13 @@ func (c *Channel) reconnect() error {
 	return nil
 }
 
-func (c *Channel) Close() {
+func (c *Channel) Close() error {
+	if err := c.Channel.Close(); err != nil {
+		return err
+	}
 	c.cleanup()
-	c.Channel.Close()
 	c.notifyClose()
+	return nil
 }
 
 func (c *Channel) cleanup() {
