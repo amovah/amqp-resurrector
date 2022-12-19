@@ -86,6 +86,14 @@ func Dial(url string, reconnectTickRate time.Duration) (*Connection, error) {
 	return conn, nil
 }
 
+func (c *Connection) removeChannel(toRemoveCh *Channel) {
+	for i, ch := range c.channels {
+		if ch == toRemoveCh {
+			c.channels = append(c.channels[:i], c.channels[i+1:]...)
+		}
+	}
+}
+
 func (c *Connection) Channel() (*Channel, error) {
 	amqpCh, err := c.Connection.Channel()
 	if err != nil {
@@ -97,6 +105,10 @@ func (c *Connection) Channel() (*Channel, error) {
 		consumes:  make(map[*Consume]chan amqp.Delivery),
 		queues:    make([]Queue, 0, 10),
 		exchanges: make([]Exchange, 0, 10),
+	}
+
+	ch.notifyClose = func() {
+		c.removeChannel(ch)
 	}
 
 	c.channels = append(c.channels, ch)

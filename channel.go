@@ -6,11 +6,12 @@ import (
 
 type Channel struct {
 	*amqp.Channel
-	consumes   map[*Consume]chan amqp.Delivery
-	queues     []Queue
-	queueBinds []QueueBind
-	exchanges  []Exchange
-	qos        *ChannelQoS
+	consumes    map[*Consume]chan amqp.Delivery
+	queues      []Queue
+	queueBinds  []QueueBind
+	exchanges   []Exchange
+	qos         *ChannelQoS
+	notifyClose func()
 }
 
 type ChannelQoS struct {
@@ -78,8 +79,6 @@ func (c *Channel) reconnect() error {
 		}
 	}
 
-	// todo exchanges
-
 	deliveryMap := make(map[*Consume]<-chan amqp.Delivery)
 	for consume := range c.consumes {
 		deliveryCh, err := c.Channel.Consume(
@@ -107,6 +106,12 @@ func (c *Channel) reconnect() error {
 	}
 
 	return nil
+}
+
+func (c *Channel) Close() {
+	c.cleanup()
+	c.Channel.Close()
+	c.notifyClose()
 }
 
 func (c *Channel) cleanup() {
