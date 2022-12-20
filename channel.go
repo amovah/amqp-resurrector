@@ -12,6 +12,7 @@ type Channel struct {
 	exchanges   []Exchange
 	qos         *ChannelQoS
 	notifyClose func()
+	isTx        bool
 }
 
 type ChannelQoS struct {
@@ -105,6 +106,21 @@ func (c *Channel) reconnect() error {
 		}(consume, durableCh)
 	}
 
+	if c.isTx {
+		if err := c.Channel.Tx(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Channel) Tx() error {
+	if err := c.Channel.Tx(); err != nil {
+		return err
+	}
+
+	c.isTx = true
 	return nil
 }
 

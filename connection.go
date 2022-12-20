@@ -28,9 +28,11 @@ func reconnectChannels(conn *Connection) error {
 			queues:    ch.queues,
 			exchanges: ch.exchanges,
 			qos:       ch.qos,
+			isTx:      ch.isTx,
 		}
 
 		if err := tempChan.reconnect(); err != nil {
+			tempChan.cleanup()
 			createdChannel.Close()
 			return err
 		}
