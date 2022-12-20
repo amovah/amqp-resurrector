@@ -29,9 +29,15 @@ func (c *Channel) Consume(consume Consume) (<-chan amqp.Delivery, error) {
 	durableCh := make(chan amqp.Delivery)
 	c.consumes[&consume] = durableCh
 
+	notifyCh := c.Channel.NotifyCancel(make(chan string))
 	go func() {
-		for msg := range deliveryCh {
-			durableCh <- msg
+		for {
+			select {
+			case <-notifyCh:
+				return
+			case msg := <-deliveryCh:
+				durableCh <- msg
+			}
 		}
 	}()
 

@@ -99,7 +99,6 @@ func (c *Channel) reconnect() error {
 	}
 
 	notifyCh := c.Channel.NotifyCancel(make(chan string))
-
 	for consume, durableCh := range c.consumes {
 		go func(consume *Consume, durableCh chan amqp.Delivery) {
 			for {
