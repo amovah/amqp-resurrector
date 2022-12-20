@@ -1,8 +1,6 @@
 package amqpresurrector
 
 import (
-	"fmt"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -35,8 +33,11 @@ func (c *Channel) Consume(consume Consume) (<-chan amqp.Delivery, error) {
 
 	go func() {
 		for msg := range deliveryCh {
-			fmt.Println("we do get a message: ", msg)
 			durableCh <- msg
+		}
+
+		if c.isClosed {
+			close(durableCh)
 		}
 	}()
 

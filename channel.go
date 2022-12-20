@@ -13,6 +13,7 @@ type Channel struct {
 	qos         *ChannelQoS
 	notifyClose func()
 	isTx        bool
+	isClosed    bool
 }
 
 type ChannelQoS struct {
@@ -98,16 +99,14 @@ func (c *Channel) reconnect() error {
 		deliveryMap[consume] = deliveryCh
 	}
 
-	notifyCh := c.Channel.NotifyCancel(make(chan string))
 	for consume, durableCh := range c.consumes {
 		go func(consume *Consume, durableCh chan amqp.Delivery) {
-			for {
-				select {
-				case <-notifyCh:
-					return
-				case msg := <-deliveryMap[consume]:
-					durableCh <- msg
-				}
+			for msg := range deliveryMap[consume] {
+				durableCh <- msg
+			}
+
+			if c.isClosed {
+				close(durableCh)
 			}
 		}(consume, durableCh)
 	}
@@ -131,10 +130,11 @@ func (c *Channel) Tx() error {
 }
 
 func (c *Channel) Close() error {
+	c.isClosed = true
 	if err := c.Channel.Close(); err != nil {
+		c.isClosed = false
 		return err
 	}
-	c.cleanup()
 	c.notifyClose()
 	return nil
 }
