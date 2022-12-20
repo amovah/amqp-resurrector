@@ -98,10 +98,17 @@ func (c *Channel) reconnect() error {
 		deliveryMap[consume] = deliveryCh
 	}
 
+	notifyCh := c.Channel.NotifyCancel(make(chan string))
+
 	for consume, durableCh := range c.consumes {
 		go func(consume *Consume, durableCh chan amqp.Delivery) {
-			for msg := range deliveryMap[consume] {
-				durableCh <- msg
+			for {
+				select {
+				case <-notifyCh:
+					return
+				case msg := <-deliveryMap[consume]:
+					durableCh <- msg
+				}
 			}
 		}(consume, durableCh)
 	}
