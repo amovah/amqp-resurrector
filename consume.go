@@ -1,6 +1,10 @@
 package amqpresurrector
 
-import amqp "github.com/rabbitmq/amqp091-go"
+import (
+	"fmt"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+)
 
 type Consume struct {
 	Queue     string
@@ -29,15 +33,10 @@ func (c *Channel) Consume(consume Consume) (<-chan amqp.Delivery, error) {
 	durableCh := make(chan amqp.Delivery)
 	c.consumes[&consume] = durableCh
 
-	notifyCh := c.Channel.NotifyCancel(make(chan string))
 	go func() {
-		for {
-			select {
-			case <-notifyCh:
-				return
-			case msg := <-deliveryCh:
-				durableCh <- msg
-			}
+		for msg := range deliveryCh {
+			fmt.Println("we do get a message: ", msg)
+			durableCh <- msg
 		}
 	}()
 
