@@ -1,6 +1,7 @@
 package amqpresurrector
 
 import (
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -10,9 +11,13 @@ type Connection struct {
 	*amqp.Connection
 	channels       []*Channel
 	closedManually bool
+	mutex          sync.Mutex
 }
 
 func reconnectChannels(conn *Connection) error {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
 	openedChannels := make([]*amqp.Channel, len(conn.channels), len(conn.channels))
 	for i, ch := range conn.channels {
 		createdChannel, err := conn.Connection.Channel()
@@ -89,6 +94,9 @@ func Dial(url string, reconnectTickRate time.Duration) (*Connection, error) {
 }
 
 func (c *Connection) removeChannel(toRemoveCh *Channel) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	for i, ch := range c.channels {
 		if ch == toRemoveCh {
 			c.channels = append(c.channels[:i], c.channels[i+1:]...)
@@ -97,6 +105,9 @@ func (c *Connection) removeChannel(toRemoveCh *Channel) {
 }
 
 func (c *Connection) Channel() (*Channel, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	amqpCh, err := c.Connection.Channel()
 	if err != nil {
 		return nil, err
