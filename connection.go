@@ -28,13 +28,12 @@ func reconnectChannels(conn *Connection) error {
 		openedChannels[i] = createdChannel
 
 		tempChan := Channel{
-			Channel:    createdChannel,
-			consumes:   ch.consumes,
-			queues:     ch.queues,
-			queueBinds: ch.queueBinds,
-			exchanges:  ch.exchanges,
-			qos:        ch.qos,
-			isTx:       ch.isTx,
+			Channel:   createdChannel,
+			consumes:  ch.consumes,
+			queues:    ch.queues,
+			exchanges: ch.exchanges,
+			qos:       ch.qos,
+			isTx:      ch.isTx,
 		}
 
 		if err := tempChan.reconnect(); err != nil {
@@ -45,9 +44,6 @@ func reconnectChannels(conn *Connection) error {
 	}
 
 	for i, ch := range conn.channels {
-		ch.notifyClose = func() {
-			conn.removeChannel(ch)
-		}
 		ch.Channel = openedChannels[i]
 	}
 
@@ -134,9 +130,6 @@ func (c *Connection) Channel() (*Channel, error) {
 }
 
 func (c *Connection) Close() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	c.closedManually = true
 	return c.Connection.Close()
 }

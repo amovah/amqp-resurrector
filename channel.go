@@ -1,8 +1,6 @@
 package amqpresurrector
 
 import (
-	"sync"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -16,7 +14,6 @@ type Channel struct {
 	notifyClose func()
 	isTx        bool
 	isClosed    bool
-	mutex       sync.Mutex
 }
 
 type ChannelQoS struct {
@@ -36,9 +33,6 @@ func (c *Channel) QoS(qos ChannelQoS) error {
 }
 
 func (c *Channel) reconnect() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	if c.qos != nil {
 		if err := c.QoS(*c.qos); err != nil {
 			return err
@@ -127,9 +121,6 @@ func (c *Channel) reconnect() error {
 }
 
 func (c *Channel) Tx() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	if err := c.Channel.Tx(); err != nil {
 		return err
 	}
@@ -139,9 +130,6 @@ func (c *Channel) Tx() error {
 }
 
 func (c *Channel) Close() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	c.isClosed = true
 	if err := c.Channel.Close(); err != nil {
 		c.isClosed = false
@@ -152,8 +140,6 @@ func (c *Channel) Close() error {
 }
 
 func (c *Channel) cleanup() {
-	c.Channel.Close()
-
 	for _, durableCh := range c.consumes {
 		close(durableCh)
 	}
