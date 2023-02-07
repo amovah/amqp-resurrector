@@ -15,7 +15,7 @@ type Consume struct {
 }
 
 func (c *Channel) Consume(consume Consume) (<-chan amqp.Delivery, error) {
-	return c.Channel.Consume(
+	deliveryCh, err := c.Channel.Consume(
 		consume.Queue,
 		consume.Consumer,
 		consume.AutoAck,
@@ -24,4 +24,22 @@ func (c *Channel) Consume(consume Consume) (<-chan amqp.Delivery, error) {
 		consume.NoWait,
 		consume.Arg,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	durableCh := make(chan amqp.Delivery)
+	c.consumes[&consume] = durableCh
+
+	go func() {
+		for msg := range deliveryCh {
+			durableCh <- msg
+		}
+
+		if c.isClosed {
+			close(durableCh)
+		}
+	}()
+
+	return durableCh, nil
 }

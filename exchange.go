@@ -13,7 +13,7 @@ type Exchange struct {
 }
 
 func (c *Channel) ExchangeDeclare(exchange Exchange) error {
-	return c.Channel.ExchangeDeclare(
+	err := c.Channel.ExchangeDeclare(
 		exchange.Name,
 		exchange.Kind,
 		exchange.Durable,
@@ -22,4 +22,11 @@ func (c *Channel) ExchangeDeclare(exchange Exchange) error {
 		exchange.NoWait,
 		exchange.Arg,
 	)
+	if err != nil {
+		return err
+	}
+
+	c.exchanges = append(c.exchanges, exchange)
+
+	return nil
 }
